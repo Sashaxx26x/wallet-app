@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: wallet-app
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SERVER_KEY
+        generateValue: true
+      - key: NODE_VERSION
+        value: 20.11.0
