@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wallet App</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(ellipse at 20% 10%, #1e1b4b 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 90%, #0c4a6e 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 50%, #0b1120 0%, #020617 100%);
+    color: #e5e7eb; min-height: 100vh; padding: 1.5rem 1rem;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem; }
+  h1 { text-align: center; font-size: 1.5rem; color: #67e8f9; text-shadow: 0 0 10px #22d3ee; margin-bottom: .5rem; }
+  h2 { font-size: 1rem; margin-bottom: .75rem; color: #c7d2fe; }
+  .card {
+    background: rgba(15,23,42,.55); backdrop-filter: blur(14px);
+    border: 1px solid rgba(103,232,249,.18); border-radius: 18px; padding: 1.5rem;
+  }
+  .card.balance { background: linear-gradient(135deg, rgba(30,27,75,.75), rgba(12,74,110,.65)); border-color: rgba(103,232,249,.35); }
+  .fiats { display: grid; grid-template-columns: repeat(3,1fr); gap: .75rem; margin-top: 1rem; }
+  .fiat { background: rgba(2,6,23,.45); border: 1px solid rgba(103,232,249,.18); border-radius: 14px; padding: 1rem .75rem; text-align: center; }
+  .fiat .cur { font-size: .75rem; color: #a5b4fc; }
+  .fiat .val { font-size: 1.4rem; font-weight: 800; margin-top: .35rem; color: #e0f2fe; }
+  button { border: none; cursor: pointer; color: #fff; transition: .2s; font-weight: 500; }
+  button:hover { filter: brightness(1.15); }
+  .btn-primary { background: linear-gradient(135deg,#6366f1,#22d3ee); box-shadow: 0 0 18px rgba(34,211,238,.45); }
+  .btn-red { background: rgba(220,38,38,.2); border: 1px solid rgba(248,113,113,.5); padding: .4rem .8rem; font-size: .8rem; border-radius: 8px; }
+  input, select { width: 100%; padding: .7rem .8rem; background: rgba(15,23,42,.7); border: 1px solid rgba(103,232,249,.25); border-radius: 10px; color: #e0f2fe; outline: none; font-size: .95rem; margin-bottom: .6rem; }
+  input:focus { border-color: #22d3ee; box-shadow: 0 0 0 3px rgba(34,211,238,.15); }
+  .pass-wrap { position: relative; margin-bottom: .6rem; }
+  .pass-wrap input { margin-bottom: 0; padding-right: 2.6rem; }
+  .eye-btn { position: absolute; right: .4rem; top: 50%; transform: translateY(-50%); background: none; border: none; padding: .35rem; color: #67e8f9; cursor: pointer; }
+  .hidden { display: none !important; }
+  .status { border-radius: 12px; padding: 1rem; font-size: .9rem; background: rgba(15,23,42,.6); border: 1px solid rgba(103,232,249,.2); margin-top: .75rem; }
+  .status.err { background: rgba(69,10,10,.6); border-color: rgba(248,113,113,.4); }
+  .status.ok { background: rgba(5,46,22,.6); border-color: rgba(34,197,94,.4); }
+  .tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
+  .tabs button { flex: 1; background: rgba(15,23,42,.6); border: 1px solid rgba(103,232,249,.2); padding: .6rem; border-radius: 10px; color: #cbd5e1; }
+  .tabs button.active { background: linear-gradient(135deg,#6366f1,#22d3ee); color: #fff; }
+  .promo-row { display: flex; gap: .5rem; }
+  .promo-row input { margin-bottom: 0; flex: 1; }
+  .exchange-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: .5rem; align-items: end; }
+  .exchange-grid .arrow { padding-bottom: .8rem; color: #67e8f9; text-align: center; }
+  .exchange-result { margin-top: .75rem; font-size: .85rem; color: #a5b4fc; padding: .6rem .75rem; background: rgba(2,6,23,.45); border: 1px dashed rgba(103,232,249,.25); border-radius: 10px; }
+  .header { display: flex; justify-content: space-between; align-items: center; }
+  .hint { color: #94a3b8; font-size: .8rem; margin-top: .5rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Wallet App</h1>
+
+  <div id="auth-screen">
+    <div class="card">
+      <div class="tabs">
+        <button id="tab-login" class="active" onclick="switchTab('login')">Вход</button>
+        <button id="tab-register" onclick="switchTab('register')">Регистрация</button>
+      </div>
+      <div id="form-login">
+        <input id="login-email" type="email" placeholder="Почта" />
+        <div class="pass-wrap">
+          <input id="login-password" type="password" placeholder="Пароль" />
+          <button class="eye-btn" onclick="togglePassword('login-password', this)">👁</button>
+        </div>
+        <button class="btn-primary" style="width:100%;padding:.7rem;border-radius:10px;" onclick="login()">Войти</button>
+      </div>
+      <div id="form-register" class="hidden">
+        <input id="reg-email" type="email" placeholder="Почта" />
+        <input id="reg-nick" type="text" placeholder="Ник" />
+        <div class="pass-wrap">
+          <input id="reg-password" type="password" placeholder="Пароль (мин. 8)" />
+          <button class="eye-btn" onclick="togglePassword('reg-password', this)">👁</button>
+        </div>
+        <input id="reg-secret" type="text" placeholder="Секретное слово" />
+        <button class="btn-primary" style="width:100%;padding:.7rem;border-radius:10px;" onclick="register()">Зарегистрироваться</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="wallet-screen" class="hidden">
+    <div class="card">
+      <div class="header">
+        <div>
+          <div>Вы вошли как <b id="user-nick"></b></div>
+          <div class="hint" id="user-email"></div>
+          <div class="hint" id="user-address"></div>
+        </div>
+        <button class="btn-red" onclick="logout()">Выйти</button>
+      </div>
+    </div>
+
+    <div class="card balance">
+      <h2>Баланс</h2>
+      <div class="fiats">
+        <div class="fiat"><div class="cur">USD</div><div class="val" id="bal-usd">$0.00</div></div>
+        <div class="fiat"><div class="cur">EUR</div><div class="val" id="bal-eur">€0.00</div></div>
+        <div class="fiat"><div class="cur">RUB</div><div class="val" id="bal-rub">₽0.00</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Обмен валют</h2>
+      <div class="exchange-grid">
+        <div><label>Отдаю</label><select id="ex-from"><option value="usd">USD</option><option value="eur">EUR</option><option value="rub">RUB</option></select></div>
+        <div class="arrow">→</div>
+        <div><label>Получаю</label><select id="ex-to"><option value="eur">EUR</option><option value="usd">USD</option><option value="rub">RUB</option></select></div>
+      </div>
+      <input id="ex-amount" type="text" placeholder="Сумма" />
+      <div class="exchange-result" id="ex-result">Введите сумму.</div>
+      <button class="btn-primary" style="width:100%;padding:.7rem;border-radius:10px;margin-top:.5rem;" onclick="doExchange()">Обменять</button>
+    </div>
+
+    <div class="card">
+      <h2>Промокоды</h2>
+      <div class="promo-row">
+        <input id="promo-input" type="text" placeholder="Введите промокод" />
+        <button class="btn-primary" style="padding:.7rem 1.1rem;border-radius:10px;" onclick="redeemPromo()">Активировать</button>
+      </div>
+      <p class="hint">Каждый код — до 5 раз. Каждая активация: +10 000 USD/EUR/RUB.</p>
+    </div>
+  </div>
+
+  <div id="status" class="status hidden"></div>
+</div>
+
+<script>
+let liveRates = { USD: 3000, EUR: 2800, RUB: 300000 };
+let currentUser = null;
+
+function setStatus(msg, type="") {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = "status " + type;
+}
+function clearStatus() { document.getElementById("status").className = "status hidden"; }
+function togglePassword(id, btn) {
+  const inp = document.getElementById(id);
+  const show = inp.type === "password";
+  inp.type = show ? "text" : "password";
+  btn.textContent = show ? "🙈" : "👁";
+}
+function switchTab(t) {
+  document.getElementById("form-login").classList.toggle("hidden", t !== "login");
+  document.getElementById("form-register").classList.toggle("hidden", t !== "register");
+  document.getElementById("tab-login").classList.toggle("active", t === "login");
+  document.getElementById("tab-register").classList.toggle("active", t === "register");
+  clearStatus();
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch("/api" + path, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    ...opts
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Ошибка запроса");
+  return data;
+}
+
+async function register() {
+  clearStatus();
+  try {
+    await api("/register", {
+      method: "POST",
+      body: JSON.stringify({
+        email: document.getElementById("reg-email").value.trim(),
+        nick: document.getElementById("reg-nick").value.trim(),
+        password: document.getElementById("reg-password").value,
+        secret: document.getElementById("reg-secret").value.trim()
+      })
+    });
+    await enterWallet();
+  } catch (e) { setStatus(e.message, "err"); }
+}
+
+async function login() {
+  clearStatus();
+  try {
+    await api("/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: document.getElementById("login-email").value.trim(),
+        password: document.getElementById("login-password").value
+      })
+    });
+    await enterWallet();
+  } catch (e) { setStatus(e.message, "err"); }
+}
+
+async function logout() {
+  await api("/logout", { method: "POST" });
+  currentUser = null;
+  document.getElementById("wallet-screen").classList.add("hidden");
+  document.getElementById("auth-screen").classList.remove("hidden");
+}
+
+async function enterWallet() {
+  const me = await api("/me");
+  currentUser = me;
+  document.getElementById("auth-screen").classList.add("hidden");
+  document.getElementById("wallet-screen").classList.remove("hidden");
+  document.getElementById("user-nick").textContent = me.nick;
+  document.getElementById("user-email").textContent = me.email;
+  document.getElementById("user-address").textContent = me.address;
+  renderBalance();
+  await loadRates();
+}
+
+function fmt(cur, v) {
+  if (cur === "usd") return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (cur === "eur") return "€" + v.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "₽" + v.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function renderBalance() {
+  if (!currentUser) return;
+  document.getElementById("bal-usd").textContent = fmt("usd", currentUser.wallet.usd);
+  document.getElementById("bal-eur").textContent = fmt("eur", currentUser.wallet.eur);
+  document.getElementById("bal-rub").textContent = fmt("rub", currentUser.wallet.rub);
+}
+
+async function loadRates() {
+  try {
+    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd,eur,rub");
+    const d = await res.json();
+    if (d.ethereum) liveRates = { USD: d.ethereum.usd, EUR: d.ethereum.eur, RUB: d.ethereum.rub };
+  } catch {}
+}
+
+async function redeemPromo() {
+  clearStatus();
+  const code = document.getElementById("promo-input").value.trim();
+  try {
+    const d = await api("/promo", { method: "POST", body: JSON.stringify({ code }) });
+    currentUser.wallet = d.wallet;
+    currentUser.promoCounts[code.toUpperCase()] = d.used;
+    renderBalance();
+    document.getElementById("promo-input").value = "";
+    setStatus(`Промокод активирован (${d.used}/5). +10 000 в каждой валюте.`, "ok");
+  } catch (e) { setStatus(e.message, "err"); }
+}
+
+function ratesPerUnit() {
+  return {
+    usd: { usd: 1, eur: liveRates.EUR/liveRates.USD, rub: liveRates.RUB/liveRates.USD },
+    eur: { usd: liveRates.USD/liveRates.EUR, eur: 1, rub: liveRates.RUB/liveRates.EUR },
+    rub: { usd: liveRates.USD/liveRates.RUB, eur: liveRates.EUR/liveRates.RUB, rub: 1 }
+  };
+}
+document.addEventListener("input", (e) => {
+  if (!["ex-amount","ex-from","ex-to"].includes(e.target.id)) return;
+  const from = document.getElementById("ex-from").value;
+  const to = document.getElementById("ex-to").value;
+  const amt = parseFloat(document.getElementById("ex-amount").value);
+  const el = document.getElementById("ex-result");
+  if (from === to) return el.textContent = "Выберите разные валюты.";
+  if (!amt || amt <= 0) return el.textContent = "Введите сумму.";
+  const rate = ratesPerUnit()[from][to];
+  const net = amt * rate * 0.99;
+  el.textContent = `Получите ${fmt(to, net)} (комиссия 1%, курс 1 ${from.toUpperCase()} = ${rate.toFixed(4)})`;
+});
+
+async function doExchange() {
+  clearStatus();
+  const from = document.getElementById("ex-from").value;
+  const to = document.getElementById("ex-to").value;
+  const amount = parseFloat(document.getElementById("ex-amount").value);
+  if (from === to) return setStatus("Разные валюты", "err");
+  if (!amount || amount <= 0) return setStatus("Неверная сумма", "err");
+  try {
+    const rate = ratesPerUnit()[from][to];
+    const d = await api("/exchange", {
+      method: "POST",
+      body: JSON.stringify({ from, to, amount, rate })
+    });
+    currentUser.wallet = d.wallet;
+    renderBalance();
+    document.getElementById("ex-amount").value = "";
+    setStatus(`Обмен: ${fmt(from, amount)} → ${fmt(to, d.received)} (комиссия ${fmt(to, d.fee)})`, "ok");
+  } catch (e) { setStatus(e.message, "err"); }
+}
+</script>
+</body>
+</html>
