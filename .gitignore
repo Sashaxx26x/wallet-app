@@ -1,0 +1,11 @@
+node_modules/
+wallet.db
+wallet.db-journal
+.env
+.env.local
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/
+data/
